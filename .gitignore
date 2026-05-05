@@ -1,0 +1,31 @@
+# Binarios compilados
+benchmark
+bench_O*
+bench_gprof
+
+# Artefactos de profiling
+gmon.out
+.last_outdir
+*.o
+*.out
+a.out
+
+# Directorios de ejecución
+cpu_*/
+run_*/
+
+# Archivos de depuración
+*.dSYM/
+*.su
+
+# Archivos de editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
