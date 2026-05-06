@@ -31,3 +31,7 @@ run_*/
 # Archivos del sistema
 .DS_Store
 Thumbs.db
+
+# Matrices generadas
+data/
+!data/.gitkeep
