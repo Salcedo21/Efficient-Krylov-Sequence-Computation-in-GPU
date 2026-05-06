@@ -8,6 +8,7 @@
 #endif
 #include "metricas.h"
 
+/* Inicializa todos los campos de m a cero y reserva los arreglos de l elementos. */
 void metricas_init(Metricas *m, int l) {
 
     // Inicializar campos de tiempo en cero
@@ -29,26 +30,36 @@ void metricas_init(Metricas *m, int l) {
     m->fallos_pagina_mayor  = 0;
 }
 
+/* Libera los arreglos dinámicos reservados por metricas_init. */
 void metricas_free(Metricas *m) {
 
+    // Liberar arreglo de tiempos por iteración
     free(m->tiempos_iter);
+
+    // Liberar arreglo de RSS por iteración
     free(m->rss_iter);
+
+    // Liberar arreglo de CPU% por iteración
     free(m->cpu_iter);
 }
 
+/* Retorna el RSS actual del proceso en kilobytes. */
 long leer_rss_kb(void) {
 #ifdef _WIN32
+    // Leer el Working Set del proceso usando la API de Windows
     PROCESS_MEMORY_COUNTERS pmc;
     if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
         return (long)(pmc.WorkingSetSize / 1024);
     return -1;
 #else
+    // Leer VmRSS desde /proc/self/status en sistemas Linux
     FILE *f = fopen("/proc/self/status", "r");
     if (!f) return -1;
 
     char line[256];
     long rss = -1;
     while (fgets(line, sizeof(line), f)) {
+        // Buscar la línea que comienza con "VmRSS:"
         if (strncmp(line, "VmRSS:", 6) == 0) {
             sscanf(line + 6, " %ld", &rss);
             break;
@@ -59,6 +70,7 @@ long leer_rss_kb(void) {
 #endif
 }
 
+/* Formatea un tamaño en bytes a la unidad más legible (KB, MB o GB). */
 static void fmt_bytes(char *buf, size_t bufsz, long bytes) {
 
     // Formatear en GB si supera 1 GB
@@ -74,6 +86,7 @@ static void fmt_bytes(char *buf, size_t bufsz, long bytes) {
     else                                   snprintf(buf, bufsz, "%ld bytes", bytes);
 }
 
+/* Escribe el informe completo de métricas en el stream de salida out. */
 static void escribir_metricas(FILE *out, const Metricas *m, int l) {
     char buf[64];
 
@@ -141,12 +154,14 @@ static void escribir_metricas(FILE *out, const Metricas *m, int l) {
     fprintf(out, "\n================================================\n");
 }
 
+/* Imprime el informe de métricas en la salida estándar. */
 void metricas_imprimir(const Metricas *m, int l) {
 
     // Escribir el informe de métricas en la salida estándar
     escribir_metricas(stdout, m, l);
 }
 
+/* Guarda el informe de métricas en outdir/metricas.txt. */
 void metricas_guardar(const Metricas *m, int l, const char *outdir) {
 
     // Construir la ruta del archivo de métricas

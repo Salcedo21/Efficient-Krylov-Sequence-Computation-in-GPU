@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "matrices.h"
 
+/* Reserva e inicializa una matriz de [filas x cols] con valores aleatorios entre 0 y 1. */
 float **crear_matriz(int filas, int cols) {
 
     // Reservar arreglo de punteros a filas
@@ -19,55 +20,63 @@ float **crear_matriz(int filas, int cols) {
     return matriz;
 }
 
+/* Imprime el nombre, dimensiones y tamaño en bytes (con unidad apropiada) de una matriz. */
 void print_tamano(const char *nombre, int filas, int cols) {
 
     // Calcular tamaño en bytes de la matriz
-    long bytes = (long)filas * cols * sizeof(float);
+    long long bytes = (long long)filas * cols * sizeof(float);
 
     // Imprimir nombre y dimensiones de la matriz
     printf("  Matriz %s [%d x %d]: ", nombre, filas, cols);
 
     // Imprimir tamaño en TB si es mayor a 1 TB
-    if (bytes >= 1024L * 1024 * 1024 * 1024)
-        printf("%ld bytes (%.2f TB)\n", bytes, bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0));
+    if (bytes >= 1024LL * 1024 * 1024 * 1024)
+        printf("%lld bytes (%.2f TB)\n", bytes, bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0));
 
     // Imprimir tamaño en GB si es mayor a 1 GB
-    else if (bytes >= 1024L * 1024 * 1024)
-        printf("%ld bytes (%.2f GB)\n", bytes, bytes / (1024.0 * 1024.0 * 1024.0));
+    else if (bytes >= 1024LL * 1024 * 1024)
+        printf("%lld bytes (%.2f GB)\n", bytes, bytes / (1024.0 * 1024.0 * 1024.0));
 
     // Imprimir tamaño en MB si es mayor a 1 MB
     else if (bytes >= 1024 * 1024)
-        printf("%ld bytes (%.2f MB)\n", bytes, bytes / (1024.0 * 1024.0));
+        printf("%lld bytes (%.2f MB)\n", bytes, bytes / (1024.0 * 1024.0));
 
     // Imprimir tamaño en KB si es mayor a 1 KB
     else if (bytes >= 1024)
-        printf("%ld bytes (%.2f KB)\n", bytes, bytes / 1024.0);
+        printf("%lld bytes (%.2f KB)\n", bytes, bytes / 1024.0);
 
     // Imprimir tamaño en bytes si es menor a 1 KB
     else
-        printf("%ld bytes\n", bytes);
+        printf("%lld bytes\n", bytes);
 }
 
+/* Inicializa A (m×m) y Z (m×n) con valores aleatorios e imprime sus tamaños. */
 float inicializar_matrices(Parametros p, float ***out_A, float ***out_Z) {
 
     printf("\n=== Inicializacion ===\n");
 
+    // Crear la matriz A cuadrada de m×m
     *out_A = crear_matriz(p.m, p.m);
+
+    // Crear la matriz Z rectangular de m×n
     *out_Z = crear_matriz(p.m, p.n);
 
+    // Mostrar el tamaño de cada matriz en pantalla
     print_tamano("A", p.m, p.m);
     print_tamano("Z", p.m, p.n);
 }
 
+/* Libera la memoria de cada fila y del arreglo de punteros de la matriz. */
 void liberar_matriz(float **matriz, int filas) {
 
     // Liberar memoria de cada fila
-    for (int i = 0; i < filas; i++) {free(matriz[i]);}
- 
+    for (int i = 0; i < filas; i++) { free(matriz[i]); }
+
     // Liberar arreglo de punteros a filas
     free(matriz);
 }
 
+/* Crea y retorna una copia profunda de la matriz cuadrada src de n×n. */
 float **copiar_snapshot(float **src, int n) {
 
     // Reservar arreglo de punteros a filas
@@ -86,6 +95,7 @@ float **copiar_snapshot(float **src, int n) {
     return snap;
 }
 
+/* Multiplica A [filas_A x cols_A] por B [cols_A x cols_B] y retorna la matriz resultado C. */
 float **multiplicar_matrices(float **A, int filas_A, int cols_A, float **B, int cols_B) {
 
     // Reservar arreglo de punteros a filas de la matriz resultado
@@ -102,7 +112,6 @@ float **multiplicar_matrices(float **A, int filas_A, int cols_A, float **B, int 
             float suma = 0.0f;
 
             for (int k = 0; k < cols_A; k++)
-
                 // Multiplicar fila de A por columna de B
                 suma += A[i][k] * B[k][j];
 
@@ -110,21 +119,26 @@ float **multiplicar_matrices(float **A, int filas_A, int cols_A, float **B, int 
             C[i][j] = suma;
         }
     }
-    
+
     // Retornar la matriz resultado
     return C;
 }
 
+/* Guarda la matriz mat [filas x cols] como texto plano en outdir/resultado_<iter>.txt. */
 void guardar_resultado_txt(float **mat, int filas, int cols, int iter, const char *outdir) {
+
+    // Construir la ruta del archivo de salida
     char nombre[256];
     snprintf(nombre, sizeof(nombre), "%s/resultado_%d.txt", outdir, iter);
 
+    // Abrir el archivo para escritura
     FILE *f = fopen(nombre, "w");
     if (!f) {
         fprintf(stderr, "Error: no se pudo abrir %s\n", nombre);
         return;
     }
 
+    // Escribir cada elemento separado por espacios, con salto de línea al final de cada fila
     for (int i = 0; i < filas; i++) {
         for (int j = 0; j < cols; j++) {
             fprintf(f, j < cols - 1 ? "%f " : "%f", mat[i][j]);
@@ -132,12 +146,18 @@ void guardar_resultado_txt(float **mat, int filas, int cols, int iter, const cha
         fprintf(f, "\n");
     }
 
+    // Cerrar el archivo e informar la ruta guardada
     fclose(f);
     printf("  Guardado: %s\n", nombre);
 }
 
+/* Libera el arreglo de l snapshots, donde cada snapshot tiene n filas. */
 void liberar_resultado(float ***resultado, int l, int n) {
+
+    // Liberar cada snapshot individualmente
     for (int i = 0; i < l; i++)
         liberar_matriz(resultado[i], n);
+
+    // Liberar el arreglo de punteros a snapshots
     free(resultado);
 }

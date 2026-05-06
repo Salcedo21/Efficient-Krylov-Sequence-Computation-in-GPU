@@ -10,6 +10,7 @@
 #include "perfil.h"
 #include "parametros.h"
 
+/* Multiplica A×Z_actual y almacena el resultado y su snapshot en los punteros de salida. */
 void ejecutar_iteracion(float **A, float **Z_actual, Parametros p, float ***out_Z_nueva, float ***out_snap) {
 
     // Multiplicar A por Z_actual y guardar la nueva matriz resultado
@@ -19,19 +20,23 @@ void ejecutar_iteracion(float **A, float **Z_actual, Parametros p, float ***out_
     *out_snap    = copiar_snapshot(*out_Z_nueva, p.n);
 }
 
+/* Retorna el tiempo de pared actual en segundos con alta resolución. */
 static double tiempo_actual(void) {
 #ifdef _WIN32
+    // Usar QueryPerformanceCounter para alta resolución en Windows
     LARGE_INTEGER freq, count;
     QueryPerformanceFrequency(&freq);
     QueryPerformanceCounter(&count);
     return (double)count.QuadPart / freq.QuadPart;
 #else
+    // Usar CLOCK_MONOTONIC para alta resolución en sistemas POSIX
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec + ts.tv_nsec * 1e-9;
 #endif
 }
 
+/* Ejecuta las p.l iteraciones del benchmark, midiendo tiempo, CPU y memoria por iteración. */
 void ejecutar_bucle(float **A, float **Z, Parametros p, float ***resultado,
                     const char *outdir, Metricas *m) {
     float **Z_actual = Z;
@@ -60,7 +65,8 @@ void ejecutar_bucle(float **A, float **Z, Parametros p, float ***resultado,
         // Calcular CPU% como (tiempo_cpu / tiempo_pared) * 100
         long long cpu_despues = leer_cpu_us_proceso();
         double cpu_s = (double)(cpu_despues - cpu_antes) / 1e6;
-        m->cpu_iter[iter] = wall > 0.0 ? (cpu_s / wall) * 100.0 : 0.0;
+        double pct = wall > 0.0 ? (cpu_s / wall) * 100.0 : 0.0;
+        m->cpu_iter[iter] = pct > 100.0 ? 100.0 : pct;
 
         // Registrar y actualizar RSS por iteración
         long rss = leer_rss_kb();
@@ -93,6 +99,7 @@ void ejecutar_bucle(float **A, float **Z, Parametros p, float ***resultado,
     liberar_matriz(Z_actual, p.m);
 }
 
+/* Inicializa matrices, ejecuta el benchmark, imprime y guarda métricas, y libera memoria. */
 void benchmark(Parametros p, const char *outdir) {
 
     // Inicializar las matrices A y Z con valores aleatorios

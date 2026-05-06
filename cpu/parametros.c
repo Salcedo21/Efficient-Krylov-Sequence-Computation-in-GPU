@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "parametros.h"
 
+/* Imprime en pantalla los parámetros de configuración del benchmark. */
 void print_parametros(Parametros p) {
 
     // Imprimir encabezado de la sección

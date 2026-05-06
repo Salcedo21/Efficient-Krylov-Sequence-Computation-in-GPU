@@ -12,6 +12,7 @@
 #include "parametros.h"
 #include "benchmark.h"
 
+/* Punto de entrada: lee el exponente, configura los parámetros y lanza el benchmark. */
 int main(void) {
     int input;
 
