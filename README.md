@@ -28,8 +28,6 @@ $$\mathcal{K}_l(A, z) = \text{span}\{z,\ Az,\ \ldots,\ A^{l-1}z\}$$
 
 Los subespacios de Krylov son la base de los solvers iterativos para sistemas lineales grandes y problemas de autovalores (GMRES, Lanczos, Arnoldi). Su cómputo eficiente es crítico cuando *m* es grande, lo que los convierte en un objetivo ideal para su optimización.
 
-Para saber más, revisar la investigación que se hizo para el proyecto en <a href="docs/research.md">Ver investigación</a>
-
 ([volver arriba](#cómputo-eficiente-de-secuencias-de-krylov-en-gpu))
 
 ---
@@ -42,8 +40,8 @@ El benchmark computa una **secuencia de Krylov por bloques** que reemplaza el ve
 
 | Símbolo | Descripción | Valor |
 | ------- | ----------- | ----- |
-| `m` | Tamaño del problema (dimensión de la matriz) | 2¹² ≤ m ≤ 2¹⁶ |
-| `n` | Tamaño del bloque (constante) | 128 |
+| `m` | Variable | 2¹² ≤ m ≤ 2¹⁶ |
+| `n` | Constante | 128 |
 | `A` | Matriz cuadrada (*m × m*, float) | aleatoria row-estocástica |
 | `Z` | Matriz de bloque (*m × n*, float) | aleatoria |
 | `l` | Número de iteraciones | `l = 2m/n` |
@@ -52,39 +50,11 @@ El benchmark computa una **secuencia de Krylov por bloques** que reemplaza el ve
 
 Para `i = 0, 1, ..., l − 1`:
 
-1. Calcular `A · Z` (multiplicación de matrices, *m×m* × *m×n*)
+1. Calcular `A · Z`
 2. Guardar las primeras `n` filas del resultado como snapshot de la iteración `i`
 3. Actualizar `Z ← A · Z` para la siguiente iteración
 
 El resultado es una secuencia de *l* snapshots de tamaño *n×n*.
-
-([volver arriba](#cómputo-eficiente-de-secuencias-de-krylov-en-gpu))
-
----
-
-## Implementación GPU
-
-La implementación GPU en `src/gpu/matmul_gpu.cu` selecciona automáticamente el modo de ejecución según la VRAM disponible en tiempo de inicialización.
-
-### Modo FULL
-
-Si `A + Z_in + Z_out + snapshot` caben en el 85 % de la VRAM libre, se asignan todas las matrices directamente en la GPU y cada iteración lanza un único kernel.
-
-### Modo SLAB (fallback)
-
-Si `A` no cabe en VRAM, se almacena en memoria host *pinned* (`cudaMallocHost`) y se procesa en **slabs horizontales** con doble buffer y dos streams CUDA:
-
-- `Z_in` y `Z_out` residen siempre completos en VRAM.
-- El tamaño máximo del slab se calcula dinámicamente a partir de la VRAM restante.
-- Mientras un stream ejecuta el kernel sobre el slab actual, el otro transfiere el siguiente slab por PCIe (`cudaMemcpyAsync`), ocultando la latencia de transferencia.
-
-### Kernel tiled
-
-Ambos modos usan el mismo kernel `tiled_mat_mul_kernel` con tiles de 32×32 en memoria compartida:
-
-- Acceso coalescido a `A` y `Z_in`.
-- Sin conflictos de bancos en memoria compartida.
-- `#pragma unroll` en el bucle de acumulación interno.
 
 ([volver arriba](#cómputo-eficiente-de-secuencias-de-krylov-en-gpu))
 
@@ -117,10 +87,10 @@ La documentación detallada de cada componente está en `docs/`:
 
 | Documento | Descripción |
 | --------- | ----------- |
-| <a href="docs/research.md">research.md</a> | Investigación y contexto teórico |
 | <a href="docs/generador.md">generador.md</a> | Generación e inicialización de matrices |
 | <a href="docs/cpu.md">cpu.md</a> | Implementación CPU |
 | <a href="docs/gpu.md">gpu.md</a> | Implementación GPU (CUDA) |
+| <a href="docs/info_hardware.md">info_hardware.md</a> | Especificaciones de los equipos usados para el benchmark |
 
 ([volver arriba](#cómputo-eficiente-de-secuencias-de-krylov-en-gpu))
 
@@ -132,28 +102,26 @@ La documentación detallada de cada componente está en `docs/`:
 
 #### CPU
 
-- MinGW-w64 / GCC (Windows: vía MSYS2)
-- GNU Make
+- MSYS2
+- MinGW-w64 / GCC
 
 #### GPU
 
-- GPU NVIDIA con soporte CUDA (arquitectura `sm_89` por defecto, RTX 40xx)
+- GPU NVIDIA con soporte CUDA 
 - CUDA Toolkit ≥ 11
 - `nvcc` en el PATH
-
-> En Windows, ejecutar `make` desde una terminal MSYS2 o añadir `C:\msys64\usr\bin` al PATH.
 
 ### Clonar
 
 ```bash
-git clone https://github.com/<your-username>/efficient-krylov-sequence-computation-in-gpu.git
-cd efficient-krylov-sequence-computation-in-gpu
+git clone https://github.com/JeroHoyos/Efficient-Krylov-Sequence-Computation-in-GPU
+cd cd Efficient-Krylov-Sequence-Computation-in-GPU
 ```
 
 ### Ejecutar benchmark CPU
 
 ```bash
-make gen EXP=10   # genera matrices de entrada (m = 1024)
+make gen EXP=10   # genera matrices de entrada (m=2^EXP)
 make run          # compila y ejecuta el benchmark
 ```
 
@@ -161,7 +129,7 @@ make run          # compila y ejecuta el benchmark
 
 ```bash
 make GPU=1        # compila con nvcc
-make gen EXP=12   # genera matrices de entrada
+make gen EXP=12   # genera matrices de entrada (m=2^EXP)
 make run GPU=1    # ejecuta el benchmark GPU
 ```
 
