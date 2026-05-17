@@ -1,11 +1,14 @@
 # ============================================================
 #  Makefile — EFFICIENT-KRYLOV
 #  Uso:
-#    make              → benchmark CPU + generador
-#    make GPU=1        → benchmark GPU (CUDA) + generador
-#    make gen EXP=10   → genera matrices para 2^10
-#    make run          → ejecuta el benchmark
-#    make clean        → limpia build/
+#    make                 → benchmark CPU + generador
+#    make GPU=1           → benchmark GPU (CUDA) + generador
+#    make gen EXP=10      → genera matrices para 2^10
+#    make run             → ejecuta el benchmark con datos en data/
+#    make bench-all       → genera y ejecuta benchmark para EXP=12..16 (CPU)
+#    make bench-all GPU=1 → ídem en GPU
+#    make clean           → limpia build/
+#    make help            → muestra este mensaje de ayuda
 # ============================================================
 
 CC      = gcc
@@ -33,8 +36,7 @@ IFLAGS_GPU  = $(IFLAGS_COM) -I$(INC_GPU)
 
 COMMON_SRCS = $(SRC_COM)/parametros.c \
               $(SRC_COM)/matrices.c    \
-              $(SRC_COM)/metricas.c    \
-              $(SRC_COM)/perfil.c
+              $(SRC_COM)/metricas.c
 
 # main.c y benchmark.c se compilan distinto según CPU/GPU (ver abajo).
 BENCH_SHARED = $(SRC_COM)/main.c      \
@@ -59,7 +61,7 @@ ifdef GPU
   # nvcc compila en un solo paso todos los .c y .cu juntos;
   # no hace falta separar objetos intermedios.
   BENCH_BIN := $(BINDIR)/bench_gpu$(EXE_EXT)
-  MUL_SRC    = $(SRC_GPU)/block_mul_gpu.cu
+  MUL_SRC    = $(SRC_GPU)/matmul_gpu.cu
 
   $(BENCH_BIN): $(BENCH_SHARED) $(MUL_SRC) | $(BINDIR)
 	$(NVCC) $(NVFLAGS) $(IFLAGS_GPU) -DUSE_CUDA \
@@ -67,7 +69,7 @@ ifdef GPU
 	@echo "[OK] Benchmark GPU compilado -> $@"
 
 else
-  MUL_SRC = $(SRC_CPU)/block_mul_cpu.c
+  MUL_SRC = $(SRC_CPU)/matmul_cpu.c
 
   $(BENCH_BIN): $(BENCH_SHARED) $(MUL_SRC) | $(BINDIR)
 	$(CC) $(CFLAGS) $(IFLAGS_CPU) \
@@ -78,7 +80,7 @@ endif
 # ============================================================
 #  Targets comunes
 # ============================================================
-.PHONY: all gen run clean help
+.PHONY: all gen run bench-all all-run clean help
 
 all: $(BENCH_BIN) $(GEN_BIN)
 
@@ -95,10 +97,30 @@ gen: $(GEN_BIN)
 	./$(GEN_BIN) $(EXP)
 
 run: $(BENCH_BIN)
-	$(BENCH_BIN)
+	./$(BENCH_BIN)
+
+# Genera y ejecuta el benchmark para cada tamaño EXP=12..16.
+# Pasar GPU=1 para correr en GPU: make bench-all GPU=1
+bench-all: $(BENCH_BIN) $(GEN_BIN)
+	@for exp in 12 13 14 15 16; do \
+		echo ""; \
+		echo "=== Benchmark EXP=$$exp (m=2^$$exp) ==="; \
+		echo s | ./$(GEN_BIN) $$exp; \
+		./$(BENCH_BIN); \
+	done
 
 all-run: all run
 
 clean:
 	$(RMDIR)
 	@echo "[OK] build/ eliminado"
+
+help:
+	@echo "Uso:"
+	@echo "  make                 -> benchmark CPU + generador"
+	@echo "  make GPU=1           -> benchmark GPU (CUDA) + generador"
+	@echo "  make gen EXP=N       -> genera matrices para 2^N"
+	@echo "  make run             -> ejecuta el benchmark con datos en data/"
+	@echo "  make bench-all       -> genera y ejecuta benchmark para EXP=12..16 (CPU)"
+	@echo "  make bench-all GPU=1 -> idem en GPU"
+	@echo "  make clean           -> limpia build/"
