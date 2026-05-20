@@ -10,6 +10,7 @@
     #include "cpu/matmul_cpu.h"
 #endif
 
+// En caso de usar GPU, seleccionar el kernel definido
 #if defined(USE_CUDA)
     #if defined(GPU_KERNEL_TILED)
         #define KERNEL_SELECCIONADO GPU_KERNEL_TILED
@@ -33,15 +34,18 @@ void ejecutar_bucle_cpu(float **A, float **Z, Parametros p, const char *outdir, 
 
     printf("\n=== Ejecucion CPU (%d iter.) ===\n", p.l);
 
+    // Bucle principal de benchmark
     for (int iter = 0; iter < p.l; iter++) {
 
         double t0 = tiempo_actual_ms();
         matmul_cpu(A, p.m, p.n, Z_cur, Z_nxt);
         double dt = tiempo_actual_ms() - t0;
-
+        // dt = Tiempo de esta iteración en ms
+        // Registrar métricas y guardar snapshot
         metricas_registrar(met, dt);
         guardar_snapshot(Z_nxt, p.n, iter, outdir);
-
+        
+        // Inicializamos la siguiente iteracion intercambiando los buffers
         float **tmp = Z_cur;
         Z_cur = Z_nxt;
         Z_nxt = tmp;
@@ -56,29 +60,37 @@ void ejecutar_bucle_cpu(float **A, float **Z, Parametros p, const char *outdir, 
 
 void ejecutar_bucle_gpu(float **A, float **Z, Parametros p, const char *outdir, Metricas *met) {
 
+    // Inicializamos doble Buffer para Z 
     float **Z_alt = crear_matriz(p.m, p.n);
     float **Z_cur = Z;
     float **Z_nxt = Z_alt;
 
+    
     GpuBuffers buf = gpu_alloc(p.m, p.n);
-    gpu_carga_matriz(A, buf.d_A, p.m, p.m);
+    // Cargamos la matriz A de RAM a VRAM
+    gpu_carga_matriz(A, buf.d_A, p.m, p.m); 
 
     printf("\n=== Ejecucion GPU (%d iter.) ===\n", p.l);
 
     for (int iter = 0; iter < p.l; iter++) {
 
+        // Cargamos la matriz Z_cur de RAM a VRAM
         gpu_carga_matriz(Z_cur, buf.d_Zin, p.m, p.n);
 
         double t0 = tiempo_actual_ms();
         matmul_gpu(buf.d_A, p.m, p.n, buf.d_Zin, buf.d_Zout, KERNEL_SELECCIONADO);
         cudaDeviceSynchronize();
         double dt = tiempo_actual_ms() - t0;
-
+        // dt = Tiempo de esta iteración en ms
+        // Descargamos la matriz Z_nxt de VRAM a RAM
         gpu_descarga_matriz(buf.d_Zout, Z_nxt, p.m, p.n);
 
+
+        // Registrar métricas y guardar snapshot
         metricas_registrar(met, dt);
         guardar_snapshot(Z_nxt, p.n, iter, outdir);
 
+        // Inicializamos la siguiente iteracion intercambiando los buffers
         float **tmp = Z_cur;
         Z_cur = Z_nxt;
         Z_nxt = tmp;
@@ -106,6 +118,8 @@ void benchmark(Parametros p, const char *matrices_dir, const char *outdir) {
 
     double t0 = tiempo_actual_ms();
 
+    // Dependiendo de si se compila con GPU o no, se ejecuta el bucle correspondiente. 
+    // En ambos casos, se registran las métricas y se guardan los snapshots en cada iteración.
     #if defined(USE_CUDA)
         ejecutar_bucle_gpu(A, Z, p, outdir, &met);
         liberar_matriz(A, p.m);
@@ -117,7 +131,7 @@ void benchmark(Parametros p, const char *matrices_dir, const char *outdir) {
     #endif
 
     double total = tiempo_actual_ms() - t0;
-
+    // Imprimir métricas, tiempo total y guardar info en benchmark_info.txt
     metricas_imprimir(&met);
     printf("  Tiempo total benchmark: %8.3f ms\n", total);
     metricas_guardar(&met, outdir, total);
