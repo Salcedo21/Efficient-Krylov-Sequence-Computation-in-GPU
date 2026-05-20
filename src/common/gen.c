@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <direct.h>
-#include "gen.h"
+#include "common/gen.h"
 
 /// Genera la matriz A en formato binario.
 ///
@@ -102,7 +102,7 @@ void guardar_parametros(const char *dir, int input, int m, int n, int l) {
 
     // Aunque la extensión es .txt, se abre en modo binario para consistencia
     // con el resto del módulo y evitar conversiones de salto de línea en Windows.
-    FILE *f = fopen(ruta, "wb");
+    FILE *f = fopen(ruta, "w");
     if (!f) {
         fprintf(stderr, "Error: no se pudo crear %s\n", ruta);
         return;

@@ -4,7 +4,7 @@
 #include "gpu/kernels/kernel_naive.h"
 #include "gpu/kernels/kernel_coalesced.h"
 #include "gpu/kernels/kernel_tiled.h"
-#include <gpu/kernels/cublas_v2.h>
+#include "gpu/kernels/kernel_cublas.h" 
 
 void matmul_gpu_device(float *d_A, int m, int n,
                        float *d_Zin, float *d_Zout, GpuKernel kernel) {

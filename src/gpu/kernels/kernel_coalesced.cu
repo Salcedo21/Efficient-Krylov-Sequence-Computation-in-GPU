@@ -1,8 +1,7 @@
 #include "gpu/kernels/kernel_coalesced.h"
 
 __global__ void coalesced_mat_mul_kernel(
-    const float *d_A, const float *d_Zin, float *d_Zout, int m, int n)
-{
+    const float *d_A, const float *d_Zin, float *d_Zout, int m, int n) {
     const int col = blockDim.x * blockIdx.x + threadIdx.x;  
     const int row = blockDim.y * blockIdx.y + threadIdx.y;
 

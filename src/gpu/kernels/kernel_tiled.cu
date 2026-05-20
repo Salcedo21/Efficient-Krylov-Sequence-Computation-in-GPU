@@ -30,7 +30,6 @@ __global__ void tiled_mat_mul_kernel(
 
         __syncthreads();
 
-        // Producto punto del tile.
         for (int k = 0; k < TILE_WIDTH; k++)
             value += sh_A[ty][k] * sh_B[k][tx];
 

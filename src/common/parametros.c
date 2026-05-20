@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <direct.h>
-#include "parametros.h"
+#include "common/parametros.h"
 
 /// Imprime los parámetros de entrada de forma formateada en la consola.
 ///
@@ -46,18 +46,18 @@ int leer_params(const char *dir, Parametros *p) {
     // Lee los 4 parámetros del archivo y verifica que se hayan leído correctamente.
     int leidos = fscanf(f,
         "input %d\n"
-        "m     %d\n"
-        "n     %d\n"
-        "l     %d\n",
-        &p->input,
-        &p->m,
-        &p->n,
-        &p->l);
+        "m %d\n"
+        "n %d\n"
+        "l %d\n",
+        &p->input, &p->m, &p->n, &p->l);
     
     if (leidos != 4) {
         fprintf(stderr, "Error: params.txt mal formado (leídos: %d/4)\n", leidos);
+        fclose(f);   // faltaba
+        return -1;   // faltaba
     }
 
+    fclose(f);       // faltaba en el caso exitoso
     return 0;
 }
 
@@ -74,27 +74,30 @@ int leer_params(const char *dir, Parametros *p) {
 ///
 int crear_outdir(int input, char *outdir, size_t size) {
 
-    // Obtiene la fecha y hora actual para incluirla en el nombre del directorio.
     time_t t = time(NULL);
     struct tm *tm_info = localtime(&t);
     char ts[16];
     strftime(ts, sizeof(ts), "%m%d_%H%M%S", tm_info);
 
     #if defined(USE_CUDA)
-        snprintf(outdir, size, "gpu_%d_%s", input, ts);
+        #if defined(GPU_KERNEL_TILED)
+            snprintf(outdir, size, "runs/gpu_tiled_%d_%s", input, ts);
+        #elif defined(GPU_KERNEL_COALESCED)
+            snprintf(outdir, size, "runs/gpu_coalesced_%d_%s", input, ts);
+        #elif defined(GPU_KERNEL_CUBLAS)
+            snprintf(outdir, size, "runs/gpu_cublas_%d_%s", input, ts);
+        #else
+            snprintf(outdir, size, "runs/gpu_naive_%d_%s", input, ts);
+        #endif
     #else
-        snprintf(outdir, size, "cpu_%d_%s", input, ts);
+        snprintf(outdir, size, "runs/cpu_%d_%s", input, ts);
     #endif
 
-    if (mkdir(outdir) != 0) {
+    _mkdir("runs");         
+
+    if (_mkdir(outdir) != 0) {
         fprintf(stderr, "Error: no se pudo crear %s\n", outdir);
         return -1;
-    }
-
-    // Guarda el nombre del directorio creado en un archivo para facilitar su acceso por scripts de análisis.
-    FILE *lf = fopen(".last_outdir", "w");
-    if (lf) { 
-        fprintf(lf, "%s\n", outdir); fclose(lf); 
     }
 
     printf("Directorio de salida: %s\n", outdir);

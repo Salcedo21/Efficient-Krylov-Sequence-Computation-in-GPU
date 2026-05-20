@@ -20,14 +20,14 @@ int main(void) {
     }
 
     #if defined(USE_CUDA)
-        printf("\n[Modo: GPU / CUDA]\n");
+        printf("\n[Modo: GPU]\n");
     #else
         printf("\n[Modo: CPU]\n");
     #endif
 
     print_parametros(p);
 
-    char outdir[64];
+    char outdir[80];  
     if (crear_outdir(p.input, outdir, sizeof(outdir)) != 0) {
         return 1;
     }

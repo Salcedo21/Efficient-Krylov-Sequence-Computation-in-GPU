@@ -53,7 +53,7 @@ void gpu_carga_matriz(float **src, float *dst_device, int filas, int cols) {
     free(tmp);
 }
 
-/// Descarga de VRAM (device) → VRAM (device)RAM (host)
+/// Descarga de VRAM (device) → RAM (host)
 ///
 /// Copia la matriz lineal de GPU y lo "desaplana".
 ///

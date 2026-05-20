@@ -9,15 +9,14 @@ void cublas_xgemm(const float *d_A, const float *d_Zin, float *d_Zout, int m, in
     const float alpha = 1.0f;
     const float beta  = 0.0f;
 
-    // cuBLAS asume column-major, por eso se invierten A y Zin
     cublasSgemm(handle,
         CUBLAS_OP_N, CUBLAS_OP_N,
-        n, m, m,        // cols C, rows C, cols A / rows B
+        n, m, m,    
         &alpha,
-        d_Zin, n,       // B (Zin) en column-major
-        d_A,   m,       // A en column-major
+        d_Zin, n,     
+        d_A,   m,     
         &beta,
-        d_Zout, n);     // C (Zout)
+        d_Zout, n);    
 
     cublasDestroy(handle);
 }

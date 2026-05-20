@@ -9,8 +9,10 @@ SRC_COMMON = src/common/benchmark.c  \
              src/common/metricas.c   \
              src/common/parametros.c
 
-SRC_GEN = src/common/gen_main.c \
-          src/common/gen.c
+SRC_GEN      = src/common/gen_main.c \
+               src/common/gen.c
+SRC_GEN_DEPS = src/common/matrices.c \
+               src/common/parametros.c
 
 SRC_CPU = src/cpu/matmul_cpu.c
 
@@ -23,23 +25,23 @@ SRC_GPU = src/gpu/matmul_gpu.cu                \
 
 GPU_KERNEL ?= NAIVE
 EXP        ?= 8
+BUILD       = build
 
-cpu:
-	$(CC) $(CFLAGS) $(SRC_COMMON) $(SRC_CPU) -o benchmark_cpu
+$(BUILD):
+	mkdir -p $(BUILD)
 
-gpu:
+cpu: $(BUILD)
+	$(CC) $(CFLAGS) $(SRC_COMMON) $(SRC_CPU) -o $(BUILD)/benchmark_cpu
+	./$(BUILD)/benchmark_cpu
+
+gpu: $(BUILD)
 	$(NVCC) $(NFLAGS) -DUSE_CUDA -DGPU_KERNEL_$(GPU_KERNEL) \
-	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o benchmark_gpu
+	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o $(BUILD)/benchmark_gpu
+	./$(BUILD)/benchmark_gpu
 
-gen:
-	$(CC) $(CFLAGS) $(SRC_GEN) src/common/matrices.c src/common/parametros.c -o gen_matrices
-	./gen_matrices $(EXP)
-
-run-cpu: cpu
-	./benchmark_cpu
-
-run-gpu: gpu
-	./benchmark_gpu
+gen: $(BUILD)
+	$(CC) $(CFLAGS) $(SRC_GEN) $(SRC_GEN_DEPS) -o $(BUILD)/gen_matrices
+	./$(BUILD)/gen_matrices $(EXP)
 
 clean:
-	rm -f benchmark_cpu benchmark_gpu gen_matrices
+	rm -rf $(BUILD)

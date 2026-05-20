@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
-#include "metricas.h"
+#include "common/metricas.h"
 
 double tiempo_actual_ms(void) {
     static LARGE_INTEGER freq;
@@ -56,15 +56,16 @@ void metricas_imprimir(const Metricas *met) {
         double t = met->muestras[i].tiempo_ms;
         suma_t  += t;
         suma_g  += met->muestras[i].gflops;
-        if (t < min_t) min_t = t;
-        if (t > max_t) max_t = t;
+        if (t < min_t) {min_t = t;}
+        if (t > max_t) {max_t = t;}
     }
 
     printf("\n=== Metricas (%d iter.) ===\n", met->n);
     printf("  Tiempo promedio : %8.3f ms\n", suma_t / met->n);
     printf("  Tiempo min      : %8.3f ms\n", min_t);
     printf("  Tiempo max      : %8.3f ms\n", max_t);
-    printf("  GFLOPs promedio : %8.3f\n",    suma_g / met->n);
+    printf("  GFLOPs totales  : %8.3f\n",    suma_g);  
+    printf("  GFLOPs promedio : %8.3f\n",    suma_g / met->n);        
 }
 
 void metricas_guardar(const Metricas *met, const char *outdir, double benchmark_total_ms) {
@@ -93,7 +94,8 @@ void metricas_guardar(const Metricas *met, const char *outdir, double benchmark_
             fprintf(fi, "Tiempo promedio : %.3f ms\n", suma_t / met->n);
             fprintf(fi, "Tiempo min      : %.3f ms\n", min_t);
             fprintf(fi, "Tiempo max      : %.3f ms\n", max_t);
-            fprintf(fi, "GFLOPs promedio : %.3f\n",    suma_g / met->n);
+            fprintf(fi, "GFLOPs totales  : %.3f\n",    suma_g);
+            fprintf(fi, "GFLOPs promedio : %.3f\n",    suma_g / met->n);      
         }
         fclose(fi);
         printf("  Info: %s\n", ruta);

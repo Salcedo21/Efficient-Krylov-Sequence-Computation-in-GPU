@@ -4,7 +4,7 @@
 //! El objetivo es tener una referencia de rendimiento para comparar con la versión GPU.
 //!
 #include <string.h>
-#include "matmul_cpu.h"
+#include "cpu/matmul_cpu.h"
 
 /// Multiplica A×Zin y guarda el resultado en Zout. Zin y Zout pueden apuntar a la misma matriz.
 ///

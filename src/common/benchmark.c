@@ -15,6 +15,8 @@
         #define KERNEL_SELECCIONADO GPU_KERNEL_TILED
     #elif defined(GPU_KERNEL_COALESCED)
         #define KERNEL_SELECCIONADO GPU_KERNEL_COALESCED
+    #elif defined(GPU_KERNEL_CUBLAS)         
+        #define KERNEL_SELECCIONADO GPU_KERNEL_CUBLAS
     #else
         #define KERNEL_SELECCIONADO GPU_KERNEL_NAIVE
     #endif
