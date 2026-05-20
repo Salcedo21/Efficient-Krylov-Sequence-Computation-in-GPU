@@ -1,27 +1,20 @@
-#ifndef METRICAS_H
-#define METRICAS_H
+#pragma once
 
 typedef struct {
-    double    tiempo_ms;
-    double    gflops;
-    double    gbps_estimado;
-    long long flops;
-    long long bytes_leidos;
-    long long bytes_escritos;
-    long long bytes_totales;
+    double tiempo_ms;
+    double gflops;
 } Muestra;
 
 typedef struct {
     Muestra *muestras;
-    int      n;   
-    int      cap; 
+    int      n, cap;
+    int      m, n_cols;
 } Metricas;
 
-void   metricas_init(Metricas *m, int capacidad);
-void   metricas_registrar(Metricas *m, double tiempo_ms, long long flops, long long bytes_leidos, long long bytes_escritos);
-void   metricas_imprimir(const Metricas *m);
-void   metricas_guardar_csv(const Metricas *m, const char *outdir, double benchmark_total_ms);
-void   metricas_free(Metricas *m);
 double tiempo_actual_ms(void);
 
-#endif
+void metricas_init    (Metricas *met, int capacidad, int m, int n_cols);
+void metricas_registrar(Metricas *met, double tiempo_ms);
+void metricas_free    (Metricas *met);
+void metricas_imprimir(const Metricas *met);
+void metricas_guardar (const Metricas *met, const char *outdir, double benchmark_total_ms);

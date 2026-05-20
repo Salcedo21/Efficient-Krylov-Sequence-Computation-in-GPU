@@ -1,18 +1,14 @@
 //! main.c - Lectura de parámetros, creación de directorio de salida y ejecución del benchmark.
 //!
-//! Este módulo contiene la función main() que lee y muestra los parámetros de entrada, crea un directorio de salida 
-//! basado en el input y la fecha/hora actual, y luego llama a la función benchmark().
-//!
-//! Cómo funciona
-//!
-//! 1. Lee los parámetros desde el archivo "data/params.txt" y los muestra por consola.
-//! 2. Crea un directorio de salida con un nombre basado en el input y la fecha/hora actual, y guarda su nombre en ".last_outdir".
-//! 3. Llama a benchmark() pasando los parámetros leídos, el directorio de matrices y el directorio de salida.
+//! Cómo funciona:
+//! 1. Lee los parámetros desde "data/params.txt" y los muestra por consola.
+//! 2. Crea un directorio de salida basado en el input y la fecha/hora actual.
+//! 3. Llama a benchmark() con los parámetros leídos.
 //!
 #include <stdio.h>
 #include <stdlib.h>
-#include "parametros.h"
-#include "benchmark.h"
+#include "common/parametros.h"
+#include "common/benchmark.h"
 
 int main(void) {
 

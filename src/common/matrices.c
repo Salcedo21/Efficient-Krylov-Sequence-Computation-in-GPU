@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "matrices.h"
+#include "common/matrices.h"
 
 /// Libera la memoria de una matriz de floats dada su cantidad de filas.
 ///

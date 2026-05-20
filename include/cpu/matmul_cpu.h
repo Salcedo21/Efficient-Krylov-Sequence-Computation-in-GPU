@@ -1,6 +1,3 @@
-#ifndef MATMUL_CPU_H
-#define MATMUL_CPU_H
+#pragma once
 
-void multiplicar_en(float **A,  int m_a, int k,float **Zin, int n,float **Zout);
-
-#endif
+void matmul_cpu(float **A, int m, int n, float **Zin, float **Zout);
