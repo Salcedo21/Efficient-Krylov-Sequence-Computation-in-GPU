@@ -63,20 +63,7 @@ El resultado es una secuencia de *l* snapshots de tamaño *n×n*.
 
 ## Estructura del Proyecto
 
-```
-efficient-krylov/
-├── src/
-│   ├── common/         # fuentes compartidas (main, benchmark, matrices, métricas, gen)
-│   ├── cpu/            # multiplicación CPU (block_mul.c)
-│   └── gpu/            # multiplicación GPU (block_mul_gpu.cu)
-├── include/
-│   ├── common/         # cabeceras compartidas
-│   ├── cpu/
-│   └── gpu/
-├── data/               # matrices generadas por make gen (ignorado por git)
-├── build/              # binarios compilados (ignorado por git)
-└── Makefile
-```
+WIP
 
 ([volver arriba](#cómputo-eficiente-de-secuencias-de-krylov-en-gpu))
 
@@ -84,16 +71,7 @@ efficient-krylov/
 
 ## Documentación
 
-La documentación detallada de cada componente está en `docs/`:
-
-| Documento | Descripción |
-| --------- | ----------- |
-| <a href="docs/research.md">research.md</a> | Investigación y contexto teórico |
-| <a href="docs/generador.md">generador.md</a> | Generación e inicialización de matrices |
-| <a href="docs/cpu.md">cpu.md</a> | Implementación CPU |
-| <a href="docs/gpu.md">gpu.md</a> | Implementación GPU (CUDA) |
-
-([volver arriba](#cómputo-eficiente-de-secuencias-de-krylov-en-gpu))
+WIP
 
 ---
 
@@ -119,17 +97,11 @@ cd efficient-krylov-sequence-computation-in-gpu
 
 ### Ejecutar benchmark CPU
 
-```bash
-make gen EXP=10   # genera matrices de entrada (m = 1024)
-make run          # compila y ejecuta el benchmark
-```
+WIP
 
 ### Ejecutar benchmark GPU
 
-```bash
-make gen EXP=10 GPU=1   # genera matrices de entrada
-make run GPU=1          # compila con nvcc y ejecuta
-```
+WIP
 
 ([volver arriba](#cómputo-eficiente-de-secuencias-de-krylov-en-gpu))
 
