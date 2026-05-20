@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <windows.h>
 #include "common/metricas.h"
-
+#include <math.h>
 // Retorna el tiempo actual en ms
 double tiempo_actual_ms(void) {
     static LARGE_INTEGER freq;
@@ -64,13 +64,36 @@ void metricas_imprimir(const Metricas *met) {
         if (t < min_t) {min_t = t;}
         if (t > max_t) {max_t = t;}
     }
+    double promedio_t = suma_t / met->n;
+    double promedio_g = suma_g / met->n;
+    //
+    // desviación estándar
+    double suma_sq_t = 0.0;
+    double suma_sq_g = 0.0;
+
+    for (int i = 0; i < met->n; i++) {
+
+        double diff_t =
+            met->muestras[i].tiempo_ms - promedio_t;
+
+        double diff_g =
+            met->muestras[i].gflops - promedio_g;
+
+        suma_sq_t += diff_t * diff_t;
+        suma_sq_g += diff_g * diff_g;
+    }
+
+    double stddev_t = sqrt(suma_sq_t / met->n);
+    double stddev_g = sqrt(suma_sq_g / met->n);
 
     printf("\n=== Metricas (%d iter.) ===\n", met->n);
-    printf("  Tiempo promedio : %8.3f ms\n", suma_t / met->n);
+    printf("  Tiempo promedio : %8.3f ms\n", promedio_t);
     printf("  Tiempo min      : %8.3f ms\n", min_t);
     printf("  Tiempo max      : %8.3f ms\n", max_t);
+    printf("  Desv. estandar del tiempo  : %8.3f ms\n", stddev_t);
     printf("  GFLOPs totales  : %8.3f\n",    suma_g);  
-    printf("  GFLOPs promedio : %8.3f\n",    suma_g / met->n);        
+    printf("  GFLOPs promedio : %8.3f\n",    promedio_g); 
+    printf("  Desv. estandar de GFLOPs : %8.3f\n", stddev_g);       
 }
 // Exporta las métricas a un archivo de texto con resumen y a un CSV con detalles de cada iteración
 void metricas_guardar(const Metricas *met, const char *outdir, double benchmark_total_ms) {
@@ -96,11 +119,35 @@ void metricas_guardar(const Metricas *met, const char *outdir, double benchmark_
                 if (t < min_t) min_t = t;
                 if (t > max_t) max_t = t;
             }
-            fprintf(fi, "Tiempo promedio : %.3f ms\n", suma_t / met->n);
+    
+            double promedio_t = suma_t / met->n;
+            double promedio_g = suma_g / met->n;
+
+            double suma_sq_t = 0.0;
+            double suma_sq_g = 0.0;
+
+            for (int i = 0; i < met->n; i++) {
+
+                double diff_t =
+                    met->muestras[i].tiempo_ms - promedio_t;
+
+                double diff_g =
+                    met->muestras[i].gflops - promedio_g;
+
+                suma_sq_t += diff_t * diff_t;
+                suma_sq_g += diff_g * diff_g;
+            }
+
+            double stddev_g = sqrt(suma_sq_g / met->n);
+            double stddev_t = sqrt(suma_sq / met->n);
+
+            fprintf(fi, "Tiempo promedio : %.3f ms\n", promedio_t);
             fprintf(fi, "Tiempo min      : %.3f ms\n", min_t);
             fprintf(fi, "Tiempo max      : %.3f ms\n", max_t);
+            fprintf(fi, "Desv. estandar del tiempo  : %.3f ms\n", stddev_t);
             fprintf(fi, "GFLOPs totales  : %.3f\n",    suma_g);
-            fprintf(fi, "GFLOPs promedio : %.3f\n",    suma_g / met->n);      
+            fprintf(fi, "GFLOPs promedio : %.3f\n",    promedio_g);
+            fprintf(fi, "Desv. estandar de GFLOPs : %.3f\n", stddev_g);
         }
         fclose(fi);
         printf("  Info: %s\n", ruta);
