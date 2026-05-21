@@ -8,6 +8,7 @@
 
 void matmul_gpu_device(float *d_A, int m, int n,
                        float *d_Zin, float *d_Zout, GpuKernel kernel) {
+    // kernel es un enum que define cual kernel utilizar.
     switch (kernel) {
         case GPU_KERNEL_NAIVE:
             naive_xgemm(d_A, d_Zin, d_Zout, m, n);
