@@ -42,7 +42,7 @@ gpu: $(BUILD)
 ifndef GPU_KERNEL
 	$(error Especifica el kernel: make gpu GPU_KERNEL=<NAIVE|COALESCED|TILED|CUBLAS>)
 endif
-	$(NVCC) $(NFLAGS) -DUSE_CUDA -DGPU_KERNEL_$(GPU_KERNEL) \
+	$(NVCC) $(NFLAGS) -DUSE_CUDA -DSEL_$(GPU_KERNEL) \
 	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o $(BUILD)/benchmark_gpu
 ifdef EXP
 	./$(BUILD)/benchmark_gpu $(EXP)
@@ -69,13 +69,13 @@ endif
 	@echo "=== Compilando binarios ==="
 	$(CC) $(CFLAGS) $(SRC_COMMON) $(SRC_CPU) -o $(BUILD)/benchmark_cpu
 	$(CC) $(CFLAGS) $(SRC_GEN) $(SRC_GEN_DEPS) -o $(BUILD)/gen_matrices
-	$(NVCC) $(NFLAGS) -DUSE_CUDA -DGPU_KERNEL_NAIVE \
+	$(NVCC) $(NFLAGS) -DUSE_CUDA -DSEL_NAIVE \
 	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o $(BUILD)/benchmark_gpu_naive
-	$(NVCC) $(NFLAGS) -DUSE_CUDA -DGPU_KERNEL_COALESCED \
+	$(NVCC) $(NFLAGS) -DUSE_CUDA -DSEL_COALESCED \
 	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o $(BUILD)/benchmark_gpu_coalesced
-	$(NVCC) $(NFLAGS) -DUSE_CUDA -DGPU_KERNEL_TILED \
+	$(NVCC) $(NFLAGS) -DUSE_CUDA -DSEL_TILED \
 	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o $(BUILD)/benchmark_gpu_tiled
-	$(NVCC) $(NFLAGS) -DUSE_CUDA -DGPU_KERNEL_CUBLAS \
+	$(NVCC) $(NFLAGS) -DUSE_CUDA -DSEL_CUBLAS \
 	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o $(BUILD)/benchmark_gpu_cublas
 
 	$(MAKE) _run_exps
