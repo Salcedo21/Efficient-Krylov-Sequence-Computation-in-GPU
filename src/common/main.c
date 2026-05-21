@@ -7,16 +7,27 @@
 //!
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "common/parametros.h"
 #include "common/benchmark.h"
 
-int main(void) {
+int main(int argc, char *argv[]) {
 
     const char *matrices_dir = "data";
     Parametros p;
 
-    if (leer_params(matrices_dir, &p) != 0) {
-        return 1;
+    if (argc >= 2) {
+        int input = atoi(argv[1]);
+        if (input <= 0) {
+            fprintf(stderr, "Error: EXP debe ser un entero positivo\n");
+            return 1;
+        }
+        p.input = input;
+        p.m     = (int)pow(2, input);
+        p.n     = 128;
+        p.l     = (2 * p.m) / p.n;
+    } else {
+        if (leer_params(matrices_dir, &p) != 0) return 1;
     }
 
     #if defined(USE_CUDA)

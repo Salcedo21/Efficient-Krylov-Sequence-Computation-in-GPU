@@ -40,10 +40,10 @@ int leer_params(const char *dir, Parametros *p) {
     FILE *f = fopen(ruta, "r");
     if (!f) {
         fprintf(stderr, "Error: no se pudo abrir %s\n", ruta);
+        fprintf(stderr, "Tip: corre 'make gen EXP=<n>' primero\n");
         return -1;
     }
 
-    // Lee los 4 parámetros del archivo y verifica que se hayan leído correctamente.
     int leidos = fscanf(f,
         "input %d\n"
         "m %d\n"
@@ -51,13 +51,13 @@ int leer_params(const char *dir, Parametros *p) {
         "l %d\n",
         &p->input, &p->m, &p->n, &p->l);
     
+    fclose(f);
+
     if (leidos != 4) {
-        fprintf(stderr, "Error: params.txt mal formado (leídos: %d/4)\n", leidos);
-        fclose(f);   // faltaba
-        return -1;   // faltaba
+        fprintf(stderr, "Error: params.txt mal formado (leidos: %d/4)\n", leidos);
+        return -1;
     }
 
-    fclose(f);       // faltaba en el caso exitoso
     return 0;
 }
 
