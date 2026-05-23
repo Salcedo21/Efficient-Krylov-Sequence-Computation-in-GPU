@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <direct.h>
-#include "gen.h"
+#include "common/gen.h"
 
 int main(int argc, char *argv[]) {
     

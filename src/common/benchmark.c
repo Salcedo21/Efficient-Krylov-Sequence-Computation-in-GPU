@@ -1,14 +1,26 @@
-// ! benchmark.c - Funciones para ejecutar el benchmark de multiplicación de matrices.
 #include <stdio.h>
 #include <stdlib.h>
-#include "benchmark.h"
-#include "matrices.h"
-#include "metricas.h"
-#include "parametros.h"
+#include "common/benchmark.h"
+#include "common/matrices.h"
+#include "common/metricas.h"
+#include "common/parametros.h"
 #if defined(USE_CUDA)
-    #include "matmul_gpu.h"
+    #include "gpu/matmul_gpu.h"
 #else
-    #include "matmul_cpu.h"
+    #include "cpu/matmul_cpu.h"
+#endif
+
+// En caso de usar GPU, seleccionar el kernel definido
+#if defined(USE_CUDA)
+    #if defined(GPU_KERNEL_TILED)
+        #define KERNEL_SELECCIONADO GPU_KERNEL_TILED
+    #elif defined(GPU_KERNEL_COALESCED)
+        #define KERNEL_SELECCIONADO GPU_KERNEL_COALESCED
+    #elif defined(GPU_KERNEL_CUBLAS)         
+        #define KERNEL_SELECCIONADO GPU_KERNEL_CUBLAS
+    #else
+        #define KERNEL_SELECCIONADO GPU_KERNEL_NAIVE
+    #endif
 #endif
 
 #if !defined(USE_CUDA) // Usar CPU
@@ -20,23 +32,20 @@ void ejecutar_bucle_cpu(float **A, float **Z, Parametros p, const char *outdir, 
     float **Z_cur = Z;
     float **Z_nxt = Z_alt;
 
-    // Flops, bytes leídos y bytes escritos teóricos de una multiplicación A×Z.
-    long long flops       = 2LL * p.m * p.m * p.n;
-    long long bytes_read  = 2LL * p.m * p.m * p.n * (long long)sizeof(float);
-    long long bytes_write = 1LL * p.m * p.n * (long long)sizeof(float);
-
     printf("\n=== Ejecucion CPU (%d iter.) ===\n", p.l);
 
+    // Bucle principal de benchmark
     for (int iter = 0; iter < p.l; iter++) {
 
         double t0 = tiempo_actual_ms();
-        matmul_cpu(A, p.m,p.n, Z_cur, Z_nxt);
+        matmul_cpu(A, p.m, p.n, Z_cur, Z_nxt);
         double dt = tiempo_actual_ms() - t0;
-
-        metricas_registrar(met, dt, flops, bytes_read, bytes_write);
+        // dt = Tiempo de esta iteración en ms
+        // Registrar métricas y guardar snapshot
+        metricas_registrar(met, dt);
         guardar_snapshot(Z_nxt, p.n, iter, outdir);
-
-        // Intercambia punteros.
+        
+        // Inicializamos la siguiente iteracion intercambiando los buffers
         float **tmp = Z_cur;
         Z_cur = Z_nxt;
         Z_nxt = tmp;
@@ -47,45 +56,57 @@ void ejecutar_bucle_cpu(float **A, float **Z, Parametros p, const char *outdir, 
     liberar_matriz(Z_alt, p.m);
 }
 
-#else // Usar GPU
+#else
 
-// Imprime la línea por iteración con la misma información que se persiste en el CSV:
-// índice, tiempo en ms, GFLOPs y GB/s estimado. Solo se usa en la rama GPU.
-static void imprimir_metrica_iter(int iter, const Muestra *s) {
-    printf("  iter %4d  %8.3f ms  %8.3f GFLOPs  %8.3f GB/s\n",
-           iter, s->tiempo_ms, s->gflops, s->gbps_estimado);
-}
+void ejecutar_bucle_gpu(float **A, float **Z, Parametros p, const char *outdir, Metricas *met) {
 
-// Itera p.l multiplicaciones en GPU. El swap de buffers ocurre dentro
-// de gpu_multiplicar(); aquí solo se mide el tiempo y se baja el snapshot.
-void ejecutar_bucle_gpu(GpuCtx *ctx, Parametros p, const char *outdir, Metricas *met) {
+    // Inicializamos doble Buffer para Z 
+    float **Z_alt = crear_matriz(p.m, p.n);
+    float **Z_cur = Z;
+    float **Z_nxt = Z_alt;
 
-    // Flops, bytes leídos y bytes escritos teóricos de una multiplicación A×Z.
-    long long flops       = 2LL * p.m * p.m * p.n;
-    long long bytes_read  = 2LL * p.m * p.m * p.n * (long long)sizeof(float);
-    long long bytes_write = 1LL * p.m * p.n * (long long)sizeof(float);
-    float **snap = crear_matriz(p.n, p.n);
+    
+    GpuBuffers buf = gpu_alloc(p.m, p.n);
+    // Cargamos la matriz A de RAM a VRAM
+    gpu_carga_matriz(A, buf.d_A, p.m, p.m); 
 
     printf("\n=== Ejecucion GPU (%d iter.) ===\n", p.l);
 
-    for (int i = 0; i < p.l; i++) {
-        double dt = gpu_multiplicar(ctx);
+    for (int iter = 0; iter < p.l; iter++) {
 
-        metricas_registrar(met, dt, flops, bytes_read, bytes_write);
-        gpu_copiar_snapshot(ctx, snap);
-        guardar_snapshot(snap, p.n, i, outdir);
+        // Cargamos la matriz Z_cur de RAM a VRAM
+        gpu_carga_matriz(Z_cur, buf.d_Zin, p.m, p.n);
 
-        imprimir_metrica_iter(i, &met->muestras[met->n - 1]);
+        double t0 = tiempo_actual_ms();
+        matmul_gpu(buf.d_A, p.m, p.n, buf.d_Zin, buf.d_Zout, KERNEL_SELECCIONADO);
+        cudaDeviceSynchronize();
+        double dt = tiempo_actual_ms() - t0;
+        // dt = Tiempo de esta iteración en ms
+        // Descargamos la matriz Z_nxt de VRAM a RAM
+        gpu_descarga_matriz(buf.d_Zout, Z_nxt, p.m, p.n);
+
+
+        // Registrar métricas y guardar snapshot
+        metricas_registrar(met, dt);
+        guardar_snapshot(Z_nxt, p.n, iter, outdir);
+
+        // Inicializamos la siguiente iteracion intercambiando los buffers
+        float **tmp = Z_cur;
+        Z_cur = Z_nxt;
+        Z_nxt = tmp;
+
+        printf("  iter %4d  %7.2f ms\n", iter, dt);
     }
 
-    liberar_matriz(snap, p.n);
+    gpu_free(&buf);
+    liberar_matriz(Z_alt, p.m);
 }
 
-#endif /* USE_CUDA */
+#endif
 
 void benchmark(Parametros p, const char *matrices_dir, const char *outdir) {
-
-    // Carga matrices A y Z desde los archivos de /data.
+    
+    //Cargar las matrices A y Z desde los archivos de /data.
     float **A, **Z;
     if (cargar_matrices(matrices_dir, p.m, p.n, &A, &Z) != 0) {
         fprintf(stderr, "Error cargando matrices desde '%s'\n", matrices_dir);
@@ -93,36 +114,16 @@ void benchmark(Parametros p, const char *matrices_dir, const char *outdir) {
     }
 
     Metricas met;
-    metricas_init(&met, p.l);
+    metricas_init(&met, p.l, p.m, p.n);
 
     double t0 = tiempo_actual_ms();
 
+    // Dependiendo de si se compila con GPU o no, se ejecuta el bucle correspondiente. 
+    // En ambos casos, se registran las métricas y se guardan los snapshots en cada iteración.
     #if defined(USE_CUDA)
-        GpuCtx ctx;
-        if (gpu_ctx_init(&ctx, A, Z, p.m, p.n) != 0) {
-            fprintf(stderr, "Error inicializando contexto GPU\n");
-            liberar_matriz(A, p.m);
-            liberar_matriz(Z, p.m);
-            return;
-        }
-
-        // Z ya está en VRAM, se puede liberar siempre tras init.
+        ejecutar_bucle_gpu(A, Z, p, outdir, &met);
+        liberar_matriz(A, p.m);
         liberar_matriz(Z, p.m);
-
-        // En modo FULL A ya está en VRAM y se puede liberar la copia pageable.
-        // En modo SLAB ctx mantiene una referencia a A, hay que liberarla
-        // después de gpu_ctx_free().
-        GpuExecMode mode = ctx.mode;
-        if (mode == GPU_EXEC_FULL) {
-            liberar_matriz(A, p.m);
-        }
-
-        ejecutar_bucle_gpu(&ctx, p, outdir, &met);
-        gpu_ctx_free(&ctx);
-
-        if (mode == GPU_EXEC_SLAB) {
-            liberar_matriz(A, p.m);
-        }
     #else
         ejecutar_bucle_cpu(A, Z, p, outdir, &met);
         liberar_matriz(A, p.m);
@@ -130,9 +131,9 @@ void benchmark(Parametros p, const char *matrices_dir, const char *outdir) {
     #endif
 
     double total = tiempo_actual_ms() - t0;
-
+    // Imprimir métricas, tiempo total y guardar info en benchmark_info.txt
     metricas_imprimir(&met);
     printf("  Tiempo total benchmark: %8.3f ms\n", total);
-    metricas_guardar_csv(&met, outdir, total);
+    metricas_guardar(&met, outdir, total);
     metricas_free(&met);
 }
