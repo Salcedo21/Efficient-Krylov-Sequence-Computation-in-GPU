@@ -139,7 +139,7 @@ void metricas_guardar(const Metricas *met, const char *outdir, double benchmark_
             }
 
             double stddev_g = sqrt(suma_sq_g / met->n);
-            double stddev_t = sqrt(suma_sq / met->n);
+            double stddev_t = sqrt(suma_sq_t  / met->n);
 
             fprintf(fi, "Tiempo promedio : %.3f ms\n", promedio_t);
             fprintf(fi, "Tiempo min      : %.3f ms\n", min_t);

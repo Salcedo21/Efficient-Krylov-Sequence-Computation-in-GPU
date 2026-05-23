@@ -23,25 +23,80 @@ SRC_GPU = src/gpu/matmul_gpu.cu                \
           src/gpu/kernels/kernel_tiled.cu      \
           src/gpu/kernels/kernel_cublas.cu
 
-GPU_KERNEL ?= NAIVE
-EXP        ?= 8
-BUILD       = build
+BUILD = build
 
 $(BUILD):
 	mkdir -p $(BUILD)
 
 cpu: $(BUILD)
 	$(CC) $(CFLAGS) $(SRC_COMMON) $(SRC_CPU) -o $(BUILD)/benchmark_cpu
+ifdef EXP
+	./$(BUILD)/benchmark_cpu $(EXP)
+else ifneq ($(wildcard data/params.txt),)
 	./$(BUILD)/benchmark_cpu
+else
+	$(error No se especifico EXP y no existe data/params.txt. Corre 'make gen EXP=<n>' primero)
+endif
 
 gpu: $(BUILD)
-	$(NVCC) $(NFLAGS) -DUSE_CUDA -DGPU_KERNEL_$(GPU_KERNEL) \
+ifndef GPU_KERNEL
+	$(error Especifica el kernel: make gpu GPU_KERNEL=<NAIVE|COALESCED|TILED|CUBLAS>)
+endif
+	$(NVCC) $(NFLAGS) -DUSE_CUDA -DSEL_$(GPU_KERNEL) \
 	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o $(BUILD)/benchmark_gpu
+ifdef EXP
+	./$(BUILD)/benchmark_gpu $(EXP)
+else ifneq ($(wildcard data/params.txt),)
 	./$(BUILD)/benchmark_gpu
+else
+	$(error No se especifico EXP y no existe data/params.txt. Corre 'make gen EXP=<n>' primero)
+endif
 
 gen: $(BUILD)
+ifndef EXP
+	$(error Especifica el exponente: make gen EXP=<n>)
+endif
 	$(CC) $(CFLAGS) $(SRC_GEN) $(SRC_GEN_DEPS) -o $(BUILD)/gen_matrices
 	./$(BUILD)/gen_matrices $(EXP)
 
 clean:
 	rm -rf $(BUILD)
+
+benchmark: $(BUILD)
+ifndef EXPS
+	$(error Especifica los exponentes: make benchmark EXPS="10 11 12")
+endif
+	@echo "=== Compilando binarios ==="
+	$(CC) $(CFLAGS) $(SRC_COMMON) $(SRC_CPU) -o $(BUILD)/benchmark_cpu
+	$(CC) $(CFLAGS) $(SRC_GEN) $(SRC_GEN_DEPS) -o $(BUILD)/gen_matrices
+	$(NVCC) $(NFLAGS) -DUSE_CUDA -DSEL_NAIVE \
+	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o $(BUILD)/benchmark_gpu_naive
+	$(NVCC) $(NFLAGS) -DUSE_CUDA -DSEL_COALESCED \
+	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o $(BUILD)/benchmark_gpu_coalesced
+	$(NVCC) $(NFLAGS) -DUSE_CUDA -DSEL_TILED \
+	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o $(BUILD)/benchmark_gpu_tiled
+	$(NVCC) $(NFLAGS) -DUSE_CUDA -DSEL_CUBLAS \
+	    $(SRC_COMMON) $(SRC_GPU) -lcublas -o $(BUILD)/benchmark_gpu_cublas
+
+	$(MAKE) _run_exps
+
+_run_exps:
+	$(foreach exp,$(EXPS),$(MAKE) _run_one EXP=$(exp) &&) true
+
+_run_one:
+	@echo ""
+	@echo "============================================"
+	@echo "  Exponente: $(EXP)  (N = 2^$(EXP))"
+	@echo "============================================"
+	@echo "--- Generando matrices ---"
+	echo s | ./$(BUILD)/gen_matrices $(EXP)
+	@echo "--- CPU ---"
+	./$(BUILD)/benchmark_cpu $(EXP)
+	@echo "--- GPU NAIVE ---"
+	./$(BUILD)/benchmark_gpu_naive $(EXP)
+	@echo "--- GPU COALESCED ---"
+	./$(BUILD)/benchmark_gpu_coalesced $(EXP)
+	@echo "--- GPU TILED ---"
+	./$(BUILD)/benchmark_gpu_tiled $(EXP)
+	@echo "--- GPU CUBLAS ---"
+	./$(BUILD)/benchmark_gpu_cublas $(EXP)

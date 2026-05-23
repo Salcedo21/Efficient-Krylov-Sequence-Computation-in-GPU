@@ -12,11 +12,11 @@
 
 // En caso de usar GPU, seleccionar el kernel definido
 #if defined(USE_CUDA)
-    #if defined(GPU_KERNEL_TILED)
+    #if defined(SEL_TILED)
         #define KERNEL_SELECCIONADO GPU_KERNEL_TILED
-    #elif defined(GPU_KERNEL_COALESCED)
+    #elif defined(SEL_COALESCED)
         #define KERNEL_SELECCIONADO GPU_KERNEL_COALESCED
-    #elif defined(GPU_KERNEL_CUBLAS)         
+    #elif defined(SEL_CUBLAS)         
         #define KERNEL_SELECCIONADO GPU_KERNEL_CUBLAS
     #else
         #define KERNEL_SELECCIONADO GPU_KERNEL_NAIVE
@@ -78,7 +78,7 @@ void ejecutar_bucle_gpu(float **A, float **Z, Parametros p, const char *outdir, 
         gpu_carga_matriz(Z_cur, buf.d_Zin, p.m, p.n);
 
         double t0 = tiempo_actual_ms();
-        matmul_gpu(buf.d_A, p.m, p.n, buf.d_Zin, buf.d_Zout, KERNEL_SELECCIONADO);
+        matmul_gpu_device(buf.d_A, p.m, p.n, buf.d_Zin, buf.d_Zout, KERNEL_SELECCIONADO);
         cudaDeviceSynchronize();
         double dt = tiempo_actual_ms() - t0;
         // dt = Tiempo de esta iteración en ms

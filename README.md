@@ -73,6 +73,9 @@ WIP
 
 WIP
 
+
+([volver arriba](#cómputo-eficiente-de-secuencias-de-krylov-en-gpu))
+
 ---
 
 ## Inicio Rápido
@@ -84,9 +87,10 @@ WIP
 - MinGW-w64 (Windows)
 - GNU Make
 
-#### GPU *(cuando esté disponible)*
+#### GPU
 
 - GPU NVIDIA con CUDA Toolkit ≥ 11
+- `nvcc` disponible en el PATH
 
 ### Clonar
 
@@ -95,16 +99,70 @@ git clone https://github.com/<your-username>/efficient-krylov-sequence-computati
 cd efficient-krylov-sequence-computation-in-gpu
 ```
 
+### Generar matrices de entrada
+
+```bash
+# Genera matrices para m = 2^EXP (default: 8)
+make gen EXP=10
+```
+
 ### Ejecutar benchmark CPU
 
-WIP
+```bash
+# Un solo exponente
+make cpu
+
+# Con exponente específico
+make cpu EXP=12
+```
 
 ### Ejecutar benchmark GPU
 
-WIP
+```bash
+# Kernel específico (NAIVE | COALESCED | TILED | CUBLAS)
+make gpu GPU_KERNEL=TILED EXP=12
+
+# Todos los kernels para un exponente
+make gpu GPU_KERNEL=NAIVE     EXP=12
+make gpu GPU_KERNEL=COALESCED EXP=12
+make gpu GPU_KERNEL=TILED     EXP=12
+make gpu GPU_KERNEL=CUBLAS    EXP=12
+```
+
+### Ejecutar benchmark completo
+
+Corre CPU y los cuatro kernels GPU para cada exponente, en orden:
+
+```bash
+# Rango por defecto: exponentes 10 a 14
+make benchmark
+
+# Rango personalizado
+make benchmark EXPS="8 9 10 11"
+```
+
+La salida agrupa los resultados por exponente, mostrando primero CPU y luego cada modo GPU:
+
+```
+============================================
+  Exponente: 10  (N = 2^10)
+============================================
+--- CPU ---
+...
+--- GPU NAIVE ---
+...
+--- GPU COALESCED ---
+...
+--- GPU TILED ---
+...
+--- GPU CUBLAS ---
+...
+```
+
+### Limpiar
+
+```bash
+make clean
+```
 
 ([volver arriba](#cómputo-eficiente-de-secuencias-de-krylov-en-gpu))
-
----
-
-*Proyecto hecho con trasnochos y sufrimiento*
